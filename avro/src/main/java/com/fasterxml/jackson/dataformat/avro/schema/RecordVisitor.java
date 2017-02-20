@@ -1,14 +1,20 @@
 package com.fasterxml.jackson.dataformat.avro.schema;
 
-import com.fasterxml.jackson.databind.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.avro.Schema;
+import org.apache.avro.reflect.AvroSchema;
+
+import com.fasterxml.jackson.databind.BeanProperty;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonFormatVisitable;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonObjectFormatVisitor;
 import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
 import com.fasterxml.jackson.dataformat.avro.AvroFixedSize;
-import org.apache.avro.Schema;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class RecordVisitor
     extends JsonObjectFormatVisitor.Base
@@ -35,6 +41,13 @@ public class RecordVisitor
     
     @Override
     public Schema builtAvroSchema() {
+        // Check if the schema for this record is overridden
+        AvroSchema schema = getProvider().getConfig().introspectClassAnnotations(_type).getClassInfo().getAnnotation(AvroSchema.class);
+        if (schema != null) {
+            Schema.Parser parser = new Schema.Parser();
+            return parser.parse(schema.value());
+        }
+
         // Assumption now is that we are done, so let's assign fields
         _avroSchema.setFields(_fields);
         return _avroSchema;
@@ -49,7 +62,17 @@ public class RecordVisitor
     @Override
     public void property(BeanProperty writer) throws JsonMappingException
     {
-        Schema schema = schemaForWriter(writer);
+        Schema schema;
+
+        // Check if the schema for this property is overridden
+        AvroSchema schemaOverride = writer.getAnnotation(AvroSchema.class);
+        if (schemaOverride != null) {
+            Schema.Parser parser = new Schema.Parser();
+            schema =  parser.parse(schemaOverride.value());
+        } else {
+            schema = schemaForWriter(writer);
+        }
+
         _fields.add(new Schema.Field(writer.getName(), schema, null, null));
     }
 
@@ -65,14 +88,24 @@ public class RecordVisitor
 
     @Override
     public void optionalProperty(BeanProperty writer) throws JsonMappingException {
-        Schema schema = schemaForWriter(writer);
-        /* 23-Nov-2012, tatu: Actually let's also assume that primitive type values
-         *   are required, as Jackson does not distinguish whether optional has been
-         *   defined, or is merely the default setting.
-         */
-        if (!writer.getType().isPrimitive()) {
-            schema = AvroSchemaHelper.unionWithNull(schema);
+        Schema schema;
+
+        // Check if the schema for this property is overridden
+        AvroSchema schemaOverride = writer.getAnnotation(AvroSchema.class);
+        if (schemaOverride != null) {
+            Schema.Parser parser = new Schema.Parser();
+            schema =  parser.parse(schemaOverride.value());
+        } else {
+            schema = schemaForWriter(writer);
+            /* 23-Nov-2012, tatu: Actually let's also assume that primitive type values
+             *   are required, as Jackson does not distinguish whether optional has been
+             *   defined, or is merely the default setting.
+             */
+            if (!writer.getType().isPrimitive()) {
+                schema = AvroSchemaHelper.unionWithNull(schema);
+            }
         }
+
         _fields.add(new Schema.Field(writer.getName(), schema, null, null));
     }
 
