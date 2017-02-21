@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.avro.Schema;
+import org.apache.avro.reflect.AvroMeta;
 import org.apache.avro.reflect.AvroSchema;
 
 import com.fasterxml.jackson.databind.BeanProperty;
@@ -11,6 +12,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonFormatVisitable;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonObjectFormatVisitor;
 import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
@@ -41,11 +43,18 @@ public class RecordVisitor
     
     @Override
     public Schema builtAvroSchema() {
+        AnnotatedClass ac = getProvider().getConfig().introspectClassAnnotations(_type).getClassInfo();
+
         // Check if the schema for this record is overridden
-        AvroSchema schema = getProvider().getConfig().introspectClassAnnotations(_type).getClassInfo().getAnnotation(AvroSchema.class);
+        AvroSchema schema = ac.getAnnotation(AvroSchema.class);
         if (schema != null) {
             Schema.Parser parser = new Schema.Parser();
             return parser.parse(schema.value());
+        }
+
+        AvroMeta meta = ac.getAnnotation(AvroMeta.class);
+        if (meta != null) {
+            _avroSchema.addProp(meta.key(), meta.value());
         }
 
         // Assumption now is that we are done, so let's assign fields
@@ -73,7 +82,14 @@ public class RecordVisitor
             schema = schemaForWriter(writer);
         }
 
-        _fields.add(new Schema.Field(writer.getName(), schema, null, null));
+        Schema.Field field = new Schema.Field(writer.getName(), schema, null, null);
+
+        AvroMeta meta = writer.getAnnotation(AvroMeta.class);
+        if (meta != null) {
+            field.addProp(meta.key(), meta.value());
+        }
+
+        _fields.add(field);
     }
 
     @Override
@@ -106,7 +122,14 @@ public class RecordVisitor
             }
         }
 
-        _fields.add(new Schema.Field(writer.getName(), schema, null, null));
+        Schema.Field field = new Schema.Field(writer.getName(), schema, null, null);
+
+        AvroMeta meta = writer.getAnnotation(AvroMeta.class);
+        if (meta != null) {
+            field.addProp(meta.key(), meta.value());
+        }
+
+        _fields.add(field);
     }
 
     @Override
