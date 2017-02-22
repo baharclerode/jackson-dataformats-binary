@@ -190,8 +190,12 @@ public abstract class AvroSchemaHelper
      * Returns the Avro type ID for a given type
      */
     protected static String getTypeId(JavaType type) {
-        // Primitives use the name of the wrapper class as their type ID
         String canonical = type.toCanonical();
+        // No generic information
+        if (canonical.contains("<")) {
+            canonical = canonical.substring(0, canonical.indexOf("<"));
+        }
+        // Primitives use the name of the wrapper class as their type ID
         switch (canonical) {
             case "byte":
                 return Byte.class.getName();
