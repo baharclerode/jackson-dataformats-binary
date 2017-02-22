@@ -1,13 +1,27 @@
 package com.fasterxml.jackson.dataformat.avro.interop;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+
 import org.apache.avro.Schema;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.BiFunction;
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.Function;
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.apacheDeserializer;
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.apacheSerializer;
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.getApacheSchema;
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.getJacksonSchema;
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.jacksonDeserialize;
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.jacksonDeserializer;
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.jacksonSerializer;
 
 /**
  * Parameterized base class for tests that populates {@link #schemaFunctor}, {@link #serializeFunctor}, and
@@ -144,5 +158,32 @@ public abstract class InteropTestBase {
             return jacksonDeserialize(schema, schemaType, serializeFunctor.apply(schema, object));
         }
         return (T) deserializeFunctor.apply(schema, serializeFunctor.apply(schema, object));
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DummyRecord {
+
+        @JsonProperty(required = true)
+        private String firstValue;
+
+        @JsonProperty(required = true)
+        private int    secondValue;
+    }
+
+    public static enum DummyEnum {
+        NORTH,
+        SOUTH,
+        EAST,
+        WEST
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Wrapper<T> {
+
+        T contents;
     }
 }

@@ -1,10 +1,11 @@
 package com.fasterxml.jackson.dataformat.avro.interop.maps;
 
-import com.fasterxml.jackson.dataformat.avro.interop.InteropTestBase;
-import org.junit.Test;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import org.junit.Test;
+
+import com.fasterxml.jackson.dataformat.avro.interop.InteropTestBase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,7 +30,6 @@ public class MapWithPrimitiveArrayTest extends InteropTestBase {
     }
 
     @Test
-    //@Ignore // Jackson doesn't support deserializing char[] properly yet
     public void testMapWithCharacters() {
         Map<String, char[]> original = new HashMap<>();
         original.put("one", new char[]{(char) 1});
