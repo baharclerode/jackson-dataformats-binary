@@ -1,11 +1,14 @@
 package com.fasterxml.jackson.dataformat.avro.schema;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.avro.Schema;
 import org.apache.avro.reflect.AvroMeta;
 import org.apache.avro.reflect.AvroSchema;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.JavaType;
@@ -22,6 +25,18 @@ public class RecordVisitor
     extends JsonObjectFormatVisitor.Base
     implements SchemaBuilder
 {
+    private JsonNode toDefaultValue(String defaultValueString) throws JsonMappingException {
+        if (defaultValueString == null) {
+            return null;
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            return mapper.readTree(defaultValueString);
+        } catch (IOException e) {
+            throw JsonMappingException.from(getProvider(), "Unable to parse default value as JSON: " + defaultValueString, e);
+        }
+    }
+
     protected final JavaType _type;
 
     protected final DefinedSchemas _schemas;
@@ -82,7 +97,12 @@ public class RecordVisitor
             schema = schemaForWriter(writer);
         }
 
-        Schema.Field field = new Schema.Field(writer.getName(), schema, null, null);
+        Schema.Field field = new Schema.Field(
+            writer.getName(),
+            schema,
+            null,
+            toDefaultValue(getProvider().getAnnotationIntrospector().findPropertyDefaultValue(writer.getMember()))
+        );
 
         AvroMeta meta = writer.getAnnotation(AvroMeta.class);
         if (meta != null) {
@@ -122,7 +142,12 @@ public class RecordVisitor
             }
         }
 
-        Schema.Field field = new Schema.Field(writer.getName(), schema, null, null);
+        Schema.Field field = new Schema.Field(
+            writer.getName(),
+            schema,
+            null,
+            toDefaultValue(getProvider().getAnnotationIntrospector().findPropertyDefaultValue(writer.getMember()))
+        );
 
         AvroMeta meta = writer.getAnnotation(AvroMeta.class);
         if (meta != null) {

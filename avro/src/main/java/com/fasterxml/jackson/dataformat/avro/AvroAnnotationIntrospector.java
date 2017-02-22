@@ -15,6 +15,7 @@ import org.apache.avro.reflect.AvroName;
  * <ul>
  * <li>{@link AvroIgnore @AvroIgnore} - Alias for <code>JsonIgnore</code></li>
  * <li>{@link AvroName @AvroName("custom Name")} - Alias for <code>JsonProperty("custom name")</code></li>
+ * <li>{@link AvroDefault @AvroDefault("1234")} - Alias for <code>JsonProperty(defaultValue = "1234")</code></li>
  * </ul>
  */
 public class AvroAnnotationIntrospector extends AnnotationIntrospector
@@ -51,5 +52,19 @@ public class AvroAnnotationIntrospector extends AnnotationIntrospector
     {
         AvroName ann = _findAnnotation(a, AvroName.class);
         return (ann == null) ? null : PropertyName.construct(ann.value());
+    }
+	
+	@Override
+    public Boolean hasRequiredMarker(AnnotatedMember m) {
+        if (_hasAnnotation(m, Nullable.class)) {
+            return false;
+        }
+        // Appears to be a bug in POJOPropertyBuilder.getMetadata()
+        // Can't specify a default unless property is known to be required or not
+        // If we have a default but no annotations indicating required or not, assume true.
+        //if (_hasAnnotation(m, AvroDefault.class) && !_hasAnnotation(m, JsonProperty.class)) {
+        //    return true;
+        //}
+        return null;
     }
 }
