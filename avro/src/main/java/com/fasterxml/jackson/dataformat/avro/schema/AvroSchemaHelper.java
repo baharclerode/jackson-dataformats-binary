@@ -44,8 +44,7 @@ public abstract class AvroSchemaHelper
                                                                                                   URL.class,
                                                                                                   File.class,
                                                                                                   BigInteger.class,
-                                                                                                  BigDecimal.class,
-                                                                                                  String.class
+                                                                                                  BigDecimal.class
     ));
 
     /**
@@ -59,10 +58,7 @@ public abstract class AvroSchemaHelper
      * @return {@code true} if it can be stored in a string schema, otherwise {@code false}
      */
     public static boolean isStringable(AnnotatedClass type) {
-        if (STRINGABLE_CLASSES.contains(type.getRawType())) {
-            return true;
-        }
-        if (!type.hasAnnotation(Stringable.class)) {
+        if (!STRINGABLE_CLASSES.contains(type.getRawType()) && !type.hasAnnotation(Stringable.class)) {
             return false;
         }
         for (AnnotatedConstructor constructor : type.getConstructors()) {

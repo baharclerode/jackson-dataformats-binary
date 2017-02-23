@@ -12,11 +12,13 @@ public class MapVisitor extends JsonMapFormatVisitor.Base
     implements SchemaBuilder
 {
     protected final JavaType _type;
-    
+
     protected final DefinedSchemas _schemas;
     
     protected Schema _valueSchema;
-    
+
+    protected JavaType _keyType;
+
     public MapVisitor(SerializerProvider p, JavaType type, DefinedSchemas schemas)
     {
         super(p);
@@ -30,7 +32,18 @@ public class MapVisitor extends JsonMapFormatVisitor.Base
         if (_valueSchema == null) {
             throw new IllegalStateException("Missing value type for "+_type);
         }
-        return Schema.createMap(_valueSchema);
+
+        Schema schema = Schema.createMap(_valueSchema);
+
+        // add the key type if there is one
+        if (_keyType != null && AvroSchemaHelper.isStringable(getProvider()
+                                                                  .getConfig()
+                                                                  .introspectClassAnnotations(_keyType)
+                                                                  .getClassInfo())) {
+            schema.addProp(AvroSchemaHelper.AVRO_SCHEMA_PROP_KEY_CLASS, AvroSchemaHelper.getTypeId(_keyType));
+        }
+
+        return schema;
     }
 
     /*
@@ -43,12 +56,7 @@ public class MapVisitor extends JsonMapFormatVisitor.Base
     public void keyFormat(JsonFormatVisitable handler, JavaType keyType)
         throws JsonMappingException
     {
-        /* We actually don't care here, since Avro only has String-keyed
-         * Maps like JSON: meaning that anything Jackson can regularly
-         * serialize must convert to Strings anyway.
-         * If we do find problem cases, we can start verifying them here,
-         * but for now assume it all "just works".
-         */
+        _keyType = keyType;
     }
 
     @Override

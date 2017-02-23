@@ -3,8 +3,9 @@ package com.fasterxml.jackson.dataformat.avro;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.AnnotationIntrospector;
 import com.fasterxml.jackson.databind.PropertyName;
-import com.fasterxml.jackson.databind.introspect.Annotated;
-import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
+import com.fasterxml.jackson.databind.introspect.*;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import com.fasterxml.jackson.dataformat.avro.schema.AvroSchemaHelper;
 
 import org.apache.avro.reflect.AvroDefault;
 import org.apache.avro.reflect.AvroIgnore;
@@ -16,6 +17,8 @@ import org.apache.avro.reflect.AvroName;
  * <li>{@link AvroIgnore @AvroIgnore} - Alias for <code>JsonIgnore</code></li>
  * <li>{@link AvroName @AvroName("custom Name")} - Alias for <code>JsonProperty("custom name")</code></li>
  * <li>{@link AvroDefault @AvroDefault("1234")} - Alias for <code>JsonProperty(defaultValue = "1234")</code></li>
+ * <li>{@link Stringable @Stringable} - Alias for <code>JsonCreator</code> on the constructor and <code>JsonValue</code> on
+ * the {@link #toString()} method. </li>
  * </ul>
  */
 public class AvroAnnotationIntrospector extends AnnotationIntrospector
@@ -65,6 +68,25 @@ public class AvroAnnotationIntrospector extends AnnotationIntrospector
         //if (_hasAnnotation(m, AvroDefault.class) && !_hasAnnotation(m, JsonProperty.class)) {
         //    return true;
         //}
+        return null;
+    }
+	
+	@Override
+    public boolean hasCreatorAnnotation(Annotated a) {
+        return a instanceof AnnotatedConstructor
+               && ((AnnotatedConstructor) a).getTypeContext() instanceof AnnotatedClass
+               && (
+                      (AnnotatedConstructor) a
+                  ).getParameterCount()
+                  == 1
+               && String.class.equals(((AnnotatedConstructor) a).getRawParameterType(0));
+    }
+
+    @Override
+    public Object findSerializer(Annotated a) {
+        if (a instanceof AnnotatedClass && AvroSchemaHelper.isStringable((AnnotatedClass)a)) {
+            return ToStringSerializer.class;
+        }
         return null;
     }
 }

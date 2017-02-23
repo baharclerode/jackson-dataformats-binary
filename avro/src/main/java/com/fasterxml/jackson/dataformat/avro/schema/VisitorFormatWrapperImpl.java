@@ -118,7 +118,7 @@ public class VisitorFormatWrapperImpl
             _valueSchema = s;
             return null;
         }
-        StringVisitor v = new StringVisitor(_schemas, type);
+        StringVisitor v = new StringVisitor(_provider, _schemas, type);
         _builder = v;
         return v;
     }
