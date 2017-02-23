@@ -10,11 +10,7 @@ import org.apache.avro.reflect.AvroSchema;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import com.fasterxml.jackson.databind.BeanProperty;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonFormatVisitable;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonObjectFormatVisitor;
@@ -50,9 +46,14 @@ public class RecordVisitor
         super(p);
         _type = type;
         _schemas = schemas;
-        _avroSchema = Schema.createRecord(AvroSchemaHelper.getName(type),
-                "Schema for "+type.toCanonical(),
-                AvroSchemaHelper.getNamespace(type), false);
+        _avroSchema = Schema.createRecord(
+            AvroSchemaHelper.getName(type),
+            getProvider()
+                .getAnnotationIntrospector()
+                .findClassDescription(getProvider().getConfig().introspectClassAnnotations(_type).getClassInfo()),
+            AvroSchemaHelper.getNamespace(type),
+            false
+        );
         schemas.addSchema(type, _avroSchema);
     }
     
@@ -100,7 +101,7 @@ public class RecordVisitor
         Schema.Field field = new Schema.Field(
             writer.getName(),
             schema,
-            null,
+            getProvider().getAnnotationIntrospector().findPropertyDescription(writer.getMember()),
             toDefaultValue(getProvider().getAnnotationIntrospector().findPropertyDefaultValue(writer.getMember()))
         );
 
@@ -145,7 +146,7 @@ public class RecordVisitor
         Schema.Field field = new Schema.Field(
             writer.getName(),
             schema,
-            null,
+            getProvider().getAnnotationIntrospector().findPropertyDescription(writer.getMember()),
             toDefaultValue(getProvider().getAnnotationIntrospector().findPropertyDefaultValue(writer.getMember()))
         );
 
