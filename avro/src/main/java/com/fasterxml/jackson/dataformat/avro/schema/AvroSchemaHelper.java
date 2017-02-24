@@ -182,17 +182,17 @@ public abstract class AvroSchemaHelper
         throw new UnsupportedOperationException("Format variation not supported");
     }
 
+    public static String getTypeId(JavaType type) {
+        return getTypeId(type.getRawClass());
+    }
+
     /**
      * Returns the Avro type ID for a given type
      */
-    protected static String getTypeId(JavaType type) {
-        String canonical = type.toCanonical();
-        // No generic information
-        if (canonical.contains("<")) {
-            canonical = canonical.substring(0, canonical.indexOf("<"));
-        }
+    public static String getTypeId(Class<?> type) {
+        String typeId = type.getName();
         // Primitives use the name of the wrapper class as their type ID
-        switch (canonical) {
+        switch (typeId) {
             case "byte":
                 return Byte.class.getName();
             case "short":
@@ -208,7 +208,7 @@ public abstract class AvroSchemaHelper
             case "double":
                 return Double.class.getName();
             default:
-                return canonical;
+                return typeId;
         }
     }
 }

@@ -10,10 +10,15 @@ import org.apache.avro.reflect.AvroSchema;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.BeanProperty;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonFormatVisitable;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonObjectFormatVisitor;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
 import com.fasterxml.jackson.dataformat.avro.AvroFixedSize;
 
@@ -59,13 +64,29 @@ public class RecordVisitor
     
     @Override
     public Schema builtAvroSchema() {
-        AnnotatedClass ac = getProvider().getConfig().introspectClassAnnotations(_type).getClassInfo();
+        AnnotatedClass ac = getProvider().getConfig().introspectDirectClassAnnotations(_type).getClassInfo();
 
         // Check if the schema for this record is overridden
         AvroSchema schema = ac.getAnnotation(AvroSchema.class);
         if (schema != null) {
             Schema.Parser parser = new Schema.Parser();
             return parser.parse(schema.value());
+        }
+
+        List<NamedType> subTypes = getProvider().getAnnotationIntrospector().findSubtypes(ac);
+        if (subTypes != null && !subTypes.isEmpty()) {
+            List<Schema> unionSchemas = new ArrayList<>();
+            try {
+                for (NamedType subType : subTypes) {
+                    JsonSerializer           ser     = getProvider().findValueSerializer(subType.getType());
+                    VisitorFormatWrapperImpl visitor = new VisitorFormatWrapperImpl(_schemas, getProvider());
+                    ser.acceptJsonFormatVisitor(visitor, getProvider().getTypeFactory().constructType(subType.getType()));
+                    unionSchemas.add(visitor.getAvroSchema());
+                }
+                return Schema.createUnion(unionSchemas);
+            } catch (JsonMappingException jme) {
+                throw new RuntimeException("Failed to build schema", jme);
+            }
         }
 
         AvroMeta meta = ac.getAnnotation(AvroMeta.class);

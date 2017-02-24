@@ -19,6 +19,7 @@ import org.apache.avro.reflect.AvroName;
  * <li>{@link AvroDefault @AvroDefault("1234")} - Alias for <code>JsonProperty(defaultValue = "1234")</code></li>
  * <li>{@link Stringable @Stringable} - Alias for <code>JsonCreator</code> on the constructor and <code>JsonValue</code> on
  * the {@link #toString()} method. </li>
+ * <li>{@link Union @Union} - Alias for <code>JsonSubTypes</code></li>
  * </ul>
  */
 public class AvroAnnotationIntrospector extends AnnotationIntrospector
@@ -88,5 +89,18 @@ public class AvroAnnotationIntrospector extends AnnotationIntrospector
             return ToStringSerializer.class;
         }
         return null;
+    }
+	
+	@Override
+    public List<NamedType> findSubtypes(Annotated a) {
+        Union union = _findAnnotation(a, Union.class);
+        if (union == null) {
+            return null;
+        }
+        ArrayList<NamedType> names = new ArrayList<>(union.value().length);
+        for (Class<?> subtype : union.value()) {
+            names.add(new NamedType(subtype, AvroSchemaHelper.getTypeId(TypeFactory.defaultInstance().constructType(subtype))));
+        }
+        return names;
     }
 }
