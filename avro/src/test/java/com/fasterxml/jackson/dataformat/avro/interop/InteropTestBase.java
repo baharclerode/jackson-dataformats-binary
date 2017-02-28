@@ -3,25 +3,16 @@ package com.fasterxml.jackson.dataformat.avro.interop;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
-import org.apache.avro.Schema;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.avro.Schema;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.BiFunction;
-import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.Function;
-import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.apacheDeserializer;
-import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.apacheSerializer;
-import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.getApacheSchema;
-import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.getJacksonSchema;
-import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.jacksonDeserialize;
-import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.jacksonDeserializer;
-import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.jacksonSerializer;
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.*;
 
 /**
  * Parameterized base class for tests that populates {@link #schemaFunctor}, {@link #serializeFunctor}, and

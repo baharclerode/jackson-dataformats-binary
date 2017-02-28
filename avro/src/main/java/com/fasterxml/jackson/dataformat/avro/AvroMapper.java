@@ -1,14 +1,16 @@
 package com.fasterxml.jackson.dataformat.avro;
 
-import java.io.*;
-
-import org.apache.avro.Schema;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.avro.schema.AvroSchemaGenerator;
+
+import org.apache.avro.Schema;
 
 /**
  * Convenience {@link AvroMapper}, which is mostly similar to simply

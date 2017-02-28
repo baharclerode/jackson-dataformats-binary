@@ -7,15 +7,15 @@ import java.net.URI;
 import java.net.URL;
 import java.util.*;
 
-import org.apache.avro.Schema;
-import org.apache.avro.reflect.Stringable;
-import org.apache.avro.specific.SpecificData;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
 import com.fasterxml.jackson.databind.introspect.AnnotatedConstructor;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonFormatTypes;
+
+import org.apache.avro.Schema;
+import org.apache.avro.reflect.Stringable;
+import org.apache.avro.specific.SpecificData;
 
 public abstract class AvroSchemaHelper
 {
@@ -35,6 +35,14 @@ public abstract class AvroSchemaHelper
      * @since 2.8.7
      */
     public static final    String        AVRO_SCHEMA_PROP_KEY_CLASS = SpecificData.KEY_CLASS_PROP;
+    /**
+     * Constant used by native Avro Schemas for indicating more specific
+     * physical class of a array element; referenced indirectly to reduce direct
+     * dependencies to the standard avro library.
+     *
+     * @since 2.8.8
+     */
+    public static final    String        AVRO_SCHEMA_PROP_ELEMENT_CLASS = SpecificData.ELEMENT_PROP;
     /**
      * Default stringable classes
      *
@@ -209,6 +217,43 @@ public abstract class AvroSchemaHelper
                 return Double.class.getName();
             default:
                 return typeId;
+        }
+    }
+
+    /**
+     * Returns the type ID for this schema, or {@code null} if none is present.
+     */
+    public static String getTypeId(Schema schema) {
+        switch (schema.getType()) {
+        case RECORD:
+        case ENUM:
+        case FIXED:
+            return getFullName(schema);
+        default:
+            return schema.getProp(AVRO_SCHEMA_PROP_CLASS);
+        }
+
+    }
+
+    /**
+     * Returns the full name of a schema; This is similar to {@link Schema#getFullName()}, except that it properly handles namespaces for
+     * nested classes. (<code>package.name.ClassName$NestedClassName</code> instead of <code>package.name.ClassName$.NestedClassName</code>)
+     */
+    public static String getFullName(Schema schema) {
+        switch (schema.getType()) {
+        case RECORD:
+        case ENUM:
+        case FIXED:
+            String namespace = schema.getNamespace();
+            if (namespace == null) {
+                return schema.getName();
+            }
+            if (namespace.endsWith("$")) {
+                return String.format("%s%s", namespace, schema.getName());
+            }
+            return String.format("%s.%s", namespace, schema.getName());
+        default:
+            return schema.getType().getName();
         }
     }
 }

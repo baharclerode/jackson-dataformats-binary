@@ -39,7 +39,7 @@ public class StructDefaults
                 AvroParserImpl parser, BinaryDecoder decoder,
                 AvroFieldReader[] fieldReaders)
         {
-            super(parent, parser, decoder);
+            super(parent, parser, decoder, null, null, null);
             _fieldReaders = fieldReaders;
         }
 
@@ -99,7 +99,7 @@ public class StructDefaults
                 AvroParserImpl parser, BinaryDecoder decoder,
                 AvroFieldReader[] valueReaders)
         {
-            super(parent, parser, decoder);
+            super(parent, parser, decoder, null, null);
             _valueReaders = valueReaders;
         }
 

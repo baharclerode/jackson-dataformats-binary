@@ -24,7 +24,7 @@ final class UnionReader extends AvroStructureReader
             AvroStructureReader[] memberReaders,
             BinaryDecoder decoder, AvroParserImpl parser)
     {
-        super(parent, TYPE_ROOT);
+        super(parent, TYPE_ROOT, null);
         _memberReaders = memberReaders;
         _decoder = decoder;
         _parser = parser;

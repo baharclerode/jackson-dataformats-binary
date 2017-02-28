@@ -11,7 +11,7 @@ import com.fasterxml.jackson.core.JsonToken;
 public final class RootReader extends AvroReadContext
 {
     public RootReader() {
-        super(null);
+        super(null, null);
         _type = TYPE_ROOT;
     }
     

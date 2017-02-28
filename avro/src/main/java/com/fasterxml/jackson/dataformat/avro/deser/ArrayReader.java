@@ -15,6 +15,7 @@ abstract class ArrayReader extends AvroStructureReader
 
     protected final BinaryDecoder _decoder;
     protected final AvroParserImpl _parser;
+    protected final String _elementTypeId;
 
     protected int _state;
     protected long _count;
@@ -22,19 +23,20 @@ abstract class ArrayReader extends AvroStructureReader
     protected String _currentName;
     
     protected ArrayReader(AvroReadContext parent,
-            AvroParserImpl parser, BinaryDecoder decoder)
+            AvroParserImpl parser, BinaryDecoder decoder, String typeId, String elementTypeId)
     {
-        super(parent, TYPE_ARRAY);
+        super(parent, TYPE_ARRAY, typeId);
         _parser = parser;
         _decoder = decoder;
+        _elementTypeId = elementTypeId;
     }
 
-    public static ArrayReader construct(ScalarDecoder reader) {
-        return new Scalar(reader);
+    public static ArrayReader construct(ScalarDecoder reader, String typeId, String elementTypeId) {
+        return new Scalar(reader, typeId, elementTypeId);
     }
 
-    public static ArrayReader construct(AvroStructureReader reader) {
-        return new NonScalar(reader);
+    public static ArrayReader construct(AvroStructureReader reader, String typeId, String elementTypeId) {
+        return new NonScalar(reader, typeId, elementTypeId);
     }
 
     @Override
@@ -57,7 +59,12 @@ abstract class ArrayReader extends AvroStructureReader
         sb.append(getCurrentIndex());
         sb.append(']');
     }
-    
+
+    @Override
+    public String getTypeId() {
+        return _currToken != JsonToken.START_ARRAY && _currToken != JsonToken.END_ARRAY ? _elementTypeId : super.getTypeId();
+    }
+
     /*
     /**********************************************************************
     /* Reader implementations for Avro arrays
@@ -68,20 +75,20 @@ abstract class ArrayReader extends AvroStructureReader
     {
         private final ScalarDecoder _elementReader;
         
-        public Scalar(ScalarDecoder reader) {
-            this(null, reader, null, null);
+        public Scalar(ScalarDecoder reader, String typeId, String elementTypeId) {
+            this(null, reader, null, null, typeId, elementTypeId);
         }
 
         private Scalar(AvroReadContext parent, ScalarDecoder reader, 
-                AvroParserImpl parser, BinaryDecoder decoder) {
-            super(parent, parser, decoder);
+                AvroParserImpl parser, BinaryDecoder decoder, String typeId, String elementTypeId) {
+            super(parent, parser, decoder, typeId, elementTypeId);
             _elementReader = reader;
         }
         
         @Override
         public Scalar newReader(AvroReadContext parent,
                 AvroParserImpl parser, BinaryDecoder decoder) {
-            return new Scalar(parent, _elementReader, parser, decoder);
+            return new Scalar(parent, _elementReader, parser, decoder, _typeId, _elementTypeId);
         }
 
         @Override
@@ -145,21 +152,21 @@ abstract class ArrayReader extends AvroStructureReader
     {
         private final AvroStructureReader _elementReader;
         
-        public NonScalar(AvroStructureReader reader) {
-            this(null, reader, null, null);
+        public NonScalar(AvroStructureReader reader, String typeId, String elementTypeId) {
+            this(null, reader, null, null, typeId, elementTypeId);
         }
 
         private NonScalar(AvroReadContext parent,
                 AvroStructureReader reader, 
-                AvroParserImpl parser, BinaryDecoder decoder) {
-            super(parent, parser, decoder);
+                AvroParserImpl parser, BinaryDecoder decoder, String typeId, String elementTypeId) {
+            super(parent, parser, decoder, typeId, elementTypeId);
             _elementReader = reader;
         }
         
         @Override
         public NonScalar newReader(AvroReadContext parent,
                 AvroParserImpl parser, BinaryDecoder decoder) {
-            return new NonScalar(parent, _elementReader, parser, decoder);
+            return new NonScalar(parent, _elementReader, parser, decoder, _typeId, _elementTypeId);
         }
 
         @Override

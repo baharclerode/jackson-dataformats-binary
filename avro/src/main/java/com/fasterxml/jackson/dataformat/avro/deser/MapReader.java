@@ -16,28 +16,32 @@ public abstract class MapReader extends AvroStructureReader
 
     protected final BinaryDecoder _decoder;
     protected final AvroParserImpl _parser;
+    protected final String _keyTypeId;
+    protected final String _valueTypeId;
 
     protected String _currentName;
 
     protected int _state;
     
-    protected MapReader() {
-        this(null, null, null);
+    protected MapReader(String typeId, String keyTypeId, String valueTypeId) {
+        this(null, null, null, typeId, keyTypeId, valueTypeId);
     }
 
     protected MapReader(AvroReadContext parent,
-            AvroParserImpl parser, BinaryDecoder decoder) {
-        super(parent, TYPE_OBJECT);
+            AvroParserImpl parser, BinaryDecoder decoder, String typeId, String keyTypeId, String valueTypeId) {
+        super(parent, TYPE_OBJECT, typeId);
         _decoder = decoder;
         _parser = parser;
+        _keyTypeId = keyTypeId;
+        _valueTypeId = valueTypeId;
     }
 
-    public static MapReader construct(ScalarDecoder dec) {
-        return new Scalar(dec);
+    public static MapReader construct(ScalarDecoder dec, String typeId, String keyTypeId, String valueTypeId) {
+        return new Scalar(dec, typeId, keyTypeId, valueTypeId);
     }
 
-    public static MapReader construct(AvroStructureReader reader) {
-        return new NonScalar(reader);
+    public static MapReader construct(AvroStructureReader reader, String typeId, String keyTypeId) {
+        return new NonScalar(reader, typeId, keyTypeId);
     }
 
     @Override
@@ -76,6 +80,17 @@ public abstract class MapReader extends AvroStructureReader
         sb.append('}');
     }
 
+    @Override
+    public String getTypeId() {
+        if (_currToken == JsonToken.START_OBJECT || _currToken == JsonToken.END_OBJECT) {
+            return super.getTypeId();
+        }
+        if (_currToken == JsonToken.FIELD_NAME) {
+            return _keyTypeId;
+        }
+        return _valueTypeId;
+    }
+
     /*
     /**********************************************************************
     /* Implementations
@@ -87,21 +102,22 @@ public abstract class MapReader extends AvroStructureReader
         private final ScalarDecoder _scalarDecoder;
         protected long _count;
 
-        protected Scalar(ScalarDecoder dec) {
+        protected Scalar(ScalarDecoder dec, String typeId, String keyTypeId, String valueTypeId) {
+            super(typeId, keyTypeId, valueTypeId);
             _scalarDecoder = dec;
         }
 
         protected Scalar(AvroReadContext parent,
                 AvroParserImpl parser, BinaryDecoder avroDecoder,
-                ScalarDecoder sd) {
-            super(parent, parser, avroDecoder);
+                ScalarDecoder sd, String typeId, String keyTypeId, String valueTypeId) {
+            super(parent, parser, avroDecoder, typeId, keyTypeId, valueTypeId);
             _scalarDecoder = sd;
         }
         
         @Override
         public MapReader newReader(AvroReadContext parent,
                 AvroParserImpl parser, BinaryDecoder decoder) {
-            return new Scalar(parent, parser, decoder, _scalarDecoder);
+            return new Scalar(parent, parser, decoder, _scalarDecoder, _typeId, _keyTypeId, _valueTypeId);
         }
 
         @Override
@@ -169,21 +185,22 @@ public abstract class MapReader extends AvroStructureReader
         private final AvroStructureReader _structureReader;
         protected long _count;
 
-        public NonScalar(AvroStructureReader reader) {
+        public NonScalar(AvroStructureReader reader, String typeId, String keyTypeId) {
+            super(typeId, keyTypeId, null);
             _structureReader = reader;
         }
 
         public NonScalar(AvroReadContext parent,
                 AvroParserImpl parser, BinaryDecoder avroDecoder,
-                AvroStructureReader reader) {
-            super(parent, parser, avroDecoder);
+                AvroStructureReader reader, String typeId, String keyTypeId) {
+            super(parent, parser, avroDecoder, typeId, keyTypeId, null);
             _structureReader = reader;
         }
         
         @Override
         public MapReader newReader(AvroReadContext parent,
                 AvroParserImpl parser, BinaryDecoder decoder) {
-            return new NonScalar(parent, parser, decoder, _structureReader);
+            return new NonScalar(parent, parser, decoder, _structureReader, _typeId, _keyTypeId);
         }
         @Override
         public JsonToken nextToken() throws IOException

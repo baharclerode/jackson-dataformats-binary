@@ -2,10 +2,10 @@ package com.fasterxml.jackson.dataformat.avro.deser;
 
 import java.util.*;
 
-import org.apache.avro.Schema;
-
 import com.fasterxml.jackson.dataformat.avro.deser.ScalarDecoder.*;
 import com.fasterxml.jackson.dataformat.avro.schema.AvroSchemaHelper;
+
+import org.apache.avro.Schema;
 
 /**
  * Helper class used for constructing a hierarchic reader for given
@@ -21,7 +21,6 @@ public abstract class AvroReaderFactory
     protected final static ScalarDecoder READER_LONG = new LongReader();
     protected final static ScalarDecoder READER_NULL = new NullReader();
     protected final static ScalarDecoder READER_STRING = new StringReader();
-    protected final static ScalarDecoder READER_CHAR = new CharReader();
 
     /**
      * To resolve cyclic types, need to keep track of resolved named
@@ -61,21 +60,24 @@ public abstract class AvroReaderFactory
         case DOUBLE: 
             return READER_DOUBLE;
         case ENUM: 
-            return new EnumDecoder(type.getFullName(), type.getEnumSymbols());
+            return new EnumDecoder(AvroSchemaHelper.getFullName(type), type.getEnumSymbols());
         case FIXED: 
-            return new FixedDecoder(type.getFixedSize());
+            return new FixedDecoder(type.getFixedSize(), AvroSchemaHelper.getFullName(type));
         case FLOAT: 
             return READER_FLOAT;
         case INT:
-            if (Character.class.getName().equals(type.getProp(AvroSchemaHelper.AVRO_SCHEMA_PROP_CLASS))) {
-                return READER_CHAR;
+            if (AvroSchemaHelper.getTypeId(type) != null) {
+                return new IntReader(AvroSchemaHelper.getTypeId(type));
             }
             return READER_INT;
         case LONG: 
             return READER_LONG;
         case NULL: 
             return READER_NULL;
-        case STRING: 
+        case STRING:
+            if (AvroSchemaHelper.getTypeId(type) != null) {
+                return new StringReader(AvroSchemaHelper.getTypeId(type));
+            }
             return READER_STRING;
         case UNION:
             /* Union is a "scalar union" if all the alternative types
@@ -117,7 +119,7 @@ public abstract class AvroReaderFactory
      */
     public AvroStructureReader createReader(Schema schema)
     {
-        AvroStructureReader reader = _knownReaders.get(_typeName(schema));
+        AvroStructureReader reader = _knownReaders.get(AvroSchemaHelper.getFullName(schema));
         if (reader != null) {
             return reader;
         }
@@ -140,28 +142,34 @@ public abstract class AvroReaderFactory
     {
         Schema elementType = schema.getElementType();
         ScalarDecoder scalar = createScalarValueDecoder(elementType);
+        String typeId = AvroSchemaHelper.getTypeId(schema);
+        String elementTypeId = schema.getProp(AvroSchemaHelper.AVRO_SCHEMA_PROP_ELEMENT_CLASS);
+
         if (scalar != null) {
-            return ArrayReader.construct(scalar);
+            return ArrayReader.construct(scalar, typeId, elementTypeId);
         }
-        return ArrayReader.construct(createReader(elementType));
+        return ArrayReader.construct(createReader(elementType), typeId, elementTypeId);
     }
 
     protected AvroStructureReader createMapReader(Schema schema)
     {
         Schema elementType = schema.getValueType();
         ScalarDecoder dec = createScalarValueDecoder(elementType);
+        String typeId = AvroSchemaHelper.getTypeId(schema);
+        String keyTypeId = schema.getProp(AvroSchemaHelper.AVRO_SCHEMA_PROP_KEY_CLASS);
         if (dec != null) {
-            return MapReader.construct(dec);
+            String valueTypeId = AvroSchemaHelper.getTypeId(elementType);
+            return MapReader.construct(dec, typeId, keyTypeId, valueTypeId);
         }
-        return MapReader.construct(createReader(elementType));
+        return MapReader.construct(createReader(elementType), typeId, keyTypeId);
     }
 
     protected AvroStructureReader createRecordReader(Schema schema)
     {
         final List<Schema.Field> fields = schema.getFields();
         AvroFieldReader[] fieldReaders = new AvroFieldReader[fields.size()];
-        RecordReader reader = new RecordReader.Std(fieldReaders);
-        _knownReaders.put(_typeName(schema), reader);
+        RecordReader reader = new RecordReader.Std(fieldReaders, AvroSchemaHelper.getTypeId(schema));
+        _knownReaders.put(AvroSchemaHelper.getFullName(schema), reader);
         int i = 0;
         for (Schema.Field field : fields) {
             fieldReaders[i++] = createFieldReader(field);
@@ -189,16 +197,6 @@ public abstract class AvroReaderFactory
             return scalar.asFieldReader(name, false);
         }
         return AvroFieldReader.construct(name, createReader(type));
-    }
-
-    /*
-    /**********************************************************************
-    /* Internal methods
-    /**********************************************************************
-     */
-
-    protected final String _typeName(Schema schema) {
-        return schema.getFullName();
     }
 
     /*
@@ -233,7 +231,7 @@ public abstract class AvroReaderFactory
         {
             // NOTE: it is assumed writer-schema has been modified with aliases so
             //   that the names are same, so we could use either name:
-            AvroStructureReader reader = _knownReaders.get(_typeName(readerSchema));
+            AvroStructureReader reader = _knownReaders.get(AvroSchemaHelper.getFullName(readerSchema));
             if (reader != null) {
                 return reader;
             }
@@ -259,11 +257,14 @@ public abstract class AvroReaderFactory
             readerSchema = _verifyMatchingStructure(readerSchema, writerSchema);
             Schema writerElementType = writerSchema.getElementType();
             ScalarDecoder scalar = createScalarValueDecoder(writerElementType);
+            String typeId = AvroSchemaHelper.getTypeId(readerSchema);
+            String elementTypeId = readerSchema.getProp(AvroSchemaHelper.AVRO_SCHEMA_PROP_ELEMENT_CLASS);
+
             if (scalar != null) {
-                return ArrayReader.construct(scalar);
+                return ArrayReader.construct(scalar, typeId, elementTypeId);
             }
             return ArrayReader.construct(createReader(writerElementType,
-                    readerSchema.getElementType()));
+                    readerSchema.getElementType()), typeId, elementTypeId);
         }
 
         protected AvroStructureReader createMapReader(Schema writerSchema, Schema readerSchema)
@@ -271,11 +272,14 @@ public abstract class AvroReaderFactory
             readerSchema = _verifyMatchingStructure(readerSchema, writerSchema);
             Schema writerElementType = writerSchema.getValueType();
             ScalarDecoder dec = createScalarValueDecoder(writerElementType);
+            String typeId = AvroSchemaHelper.getTypeId(readerSchema);
+            String keyTypeId = readerSchema.getProp(AvroSchemaHelper.AVRO_SCHEMA_PROP_KEY_CLASS);
             if (dec != null) {
-                return MapReader.construct(dec);
+                String valueTypeId = readerSchema.getValueType().getProp(AvroSchemaHelper.AVRO_SCHEMA_PROP_CLASS);
+                return MapReader.construct(dec, typeId, keyTypeId, valueTypeId);
             }
             return MapReader.construct(createReader(writerElementType,
-                    readerSchema.getElementType()));
+                    readerSchema.getElementType()), typeId, keyTypeId);
         }
 
         protected AvroStructureReader createRecordReader(Schema writerSchema, Schema readerSchema)
@@ -311,10 +315,10 @@ public abstract class AvroReaderFactory
             // ones from writer schema -- some may skip, but there's entry there
             AvroFieldReader[] fieldReaders = new AvroFieldReader[writerFields.size()
                                                                    + defaultFields.size()];
-            RecordReader reader = new RecordReader.Resolving(fieldReaders);
+            RecordReader reader = new RecordReader.Resolving(fieldReaders, AvroSchemaHelper.getTypeId(readerSchema));
 
             // as per earlier, names should be the same
-            _knownReaders.put(_typeName(readerSchema), reader);
+            _knownReaders.put(AvroSchemaHelper.getFullName(readerSchema), reader);
             int i = 0;
             for (Schema.Field writerField : writerFields) {
                 Schema.Field readerField = readerFields.get(writerField.name());
