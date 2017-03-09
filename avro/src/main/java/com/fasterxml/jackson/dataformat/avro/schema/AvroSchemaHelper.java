@@ -80,10 +80,10 @@ public abstract class AvroSchemaHelper
     protected static String getNamespace(JavaType type) {
         Class<?> cls = type.getRawClass();
         // 16-Feb-2017, tatu: Fixed as suggested by `baharclerode@github`
-        Class<?> enclosing = cls.getEnclosingClass();
-        if (enclosing != null) {
-            return enclosing.getName() + "$";
-        }
+        //Class<?> enclosing = cls.getEnclosingClass();
+        //if (enclosing != null) {
+        //    return enclosing.getName() + "$";
+        //}
         Package pkg = cls.getPackage();
         return (pkg == null) ? "" : pkg.getName();
     }

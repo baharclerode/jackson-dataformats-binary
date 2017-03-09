@@ -1,9 +1,14 @@
 package com.fasterxml.jackson.dataformat.avro.interop.records;
 
 import lombok.Data;
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.fasterxml.jackson.dataformat.avro.interop.InteropTestBase;
+
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.apacheDeserializer;
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.getJacksonSchema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,6 +26,12 @@ public class RecordWithPrimitiveWrapperTest extends InteropTestBase {
         private Float     floatField     = 0F;
         private Double    doubleField    = 0D;
         private String    stringField    = "";
+    }
+
+    @Before
+    public void setup() {
+        // 2.8 doesn't generate schemas with compatible namespaces for Apache deserializer
+        Assume.assumeTrue(deserializeFunctor != apacheDeserializer || schemaFunctor != getJacksonSchema);
     }
 
     @Test

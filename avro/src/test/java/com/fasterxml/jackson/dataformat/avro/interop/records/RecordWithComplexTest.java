@@ -10,10 +10,16 @@ import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.apache.avro.reflect.Nullable;
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.avro.interop.InteropTestBase;
+
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.apacheDeserializer;
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.apacheSerializer;
+import static com.fasterxml.jackson.dataformat.avro.interop.ApacheAvroInteropUtil.getJacksonSchema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -41,6 +47,14 @@ public class RecordWithComplexTest extends InteropTestBase {
             super(firstValue, secondValue);
             this.next = next;
         }
+    }
+
+    @Before
+    public void setup() {
+        // 2.8 doesn't generate schemas with compatible namespaces for Apache deserializer
+        Assume.assumeTrue(deserializeFunctor != apacheDeserializer || schemaFunctor != getJacksonSchema);
+        // 2.8 doesn't generate schemas with compatible namespaces for Apache serializer, so there are problems resolving unions
+        Assume.assumeTrue(serializeFunctor != apacheSerializer || schemaFunctor != getJacksonSchema);
     }
 
     @Test
