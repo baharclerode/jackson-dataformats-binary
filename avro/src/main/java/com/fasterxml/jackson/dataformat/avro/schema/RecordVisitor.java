@@ -12,6 +12,7 @@ import org.apache.avro.reflect.AvroSchema;
 import org.apache.avro.util.internal.JacksonUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.node.NullNode;
 
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonFormatVisitable;
@@ -190,6 +191,12 @@ public class RecordVisitor
             }
         }
         JsonNode defaultValue = parseJson(prop.getMetadata().getDefaultValue());
+
+        // 17-Aug-2018, bharclerode: If no default value was provided, but the type is a nullable union, assume null is the default
+        if (defaultValue == null && writerSchema.getType() == Type.UNION && writerSchema.getIndexNamed(Type.NULL.getName()) != null) {
+            defaultValue = NullNode.getInstance();
+        }
+
         writerSchema = reorderUnionToMatchDefaultType(writerSchema, defaultValue);
 
         String name = prop.getName();
